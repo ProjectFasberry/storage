@@ -1,0 +1,167 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    devDependencies:
+      '@reatom/framework':
+        specifier: 3.4.68
+        version: 3.4.68
+      '@reatom/npm-react':
+        specifier: 3.10.6
+        version: 3.10.6(react@19.3.1)
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
+
+packages:
+
+  '@reatom/async@3.16.10':
+    resolution: {integrity: sha512-HxZwS7EydTcBKoKd3Z2VIi0O8YjJrkYWLSH0wxEPUhZcuWILjyuYSFBSAq4wFFkvQlbh9L7g6T4hr7lhQDhkbA==}
+
+  '@reatom/core@3.10.3':
+    resolution: {integrity: sha512-uctBfmL/ZNvHWRX92Y+VQZON37fXNja4FM1fzevX7RYOWy6R7evx42VM6K4kuOaIci7bVWPhPZzHWeAu0J2lHQ==}
+
+  '@reatom/effects@3.11.3':
+    resolution: {integrity: sha512-0qxr7m6e+GrOvt0pESONl4aRZxGjsU1HWXIsDR2Ghw0mNGjuStnEDUZnO+MVbKOArMIAvZ8ZoMrQWqXEBfOrVg==}
+
+  '@reatom/framework@3.4.68':
+    resolution: {integrity: sha512-8/ACG5O0z2c0GSFCFjogcHFXzYJ9+fGuUD0dzAV9gjHzDiziYujvFjyJj9g7wmAynI7UYR8cLClJ8WjVAOlH+g==}
+
+  '@reatom/hooks@3.6.1':
+    resolution: {integrity: sha512-1q8qXAOkQlDKc/Y94alPHWqMnXvJhCG4Rr9hQxPMPG1Qf3WpeKm7Zdxs4v3DC2Kcw6oG6djVk3i5duIjPygGWA==}
+
+  '@reatom/lens@3.12.0':
+    resolution: {integrity: sha512-YsEnYYHi58ePDscXomnbDPC9NSggfJQHvhcpqEAmvZuHH4nbsUpoQj2W69nSQyUDH/+X+TxURvsGUOHaXMl9pQ==}
+
+  '@reatom/logger@3.8.5':
+    resolution: {integrity: sha512-77CnCCshm0ub/A+dOPq2QAoNA+6t60DBnx2D3mcKjsx1deyRlHd7Q6Z4Ddg9590KuVb/j1ziMoHoYLZywu606g==}
+
+  '@reatom/npm-react@3.10.6':
+    resolution: {integrity: sha512-lyoJD+pF2/P6B5bzSYjUQCzUSa0zkUQNAm1Lj8VXmVbILuiWid+n/9o/fJa8eEyH+w6KaFRunz1WZcOg/NW91g==}
+    peerDependencies:
+      react: '>=16.8.0'
+
+  '@reatom/persist@3.4.3':
+    resolution: {integrity: sha512-NsJNZEATjaXKGjxlPQ95KD3LmEVD4SY01HSJmDujACOYECFUMrVBD3p+SPV2+2PJEfVXAVapFvqxwPCq3RlajA==}
+
+  '@reatom/primitives@3.11.0':
+    resolution: {integrity: sha512-b+jtK7qpQxSP83mYQXpPRMlFyg+C9WPv4sZDWSmm00mwmwetW0KbltftkWiwQjQM1TLwpDLZ6R7DX7fcTraIgg==}
+
+  '@reatom/utils@3.11.3':
+    resolution: {integrity: sha512-H2FQf9xra7Twf0PxS6L0DtuRRC79NfHRB3V/YhnhPHyUE/UFscXrin/I2eGj3FEKcgOfC2BWnzCOrkXjKWgECQ==}
+
+  '@types/react@19.3.0':
+    resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
+
+  csstype@3.2.3:
+    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  react@19.3.1:
+    resolution: {integrity: sha512-QNhWdt7nrgVWWQG58QuGsAR3jv3Hbe4mb4vz7w2csnHavciZJgda1CPNaldF6eVxv90ud3jUXpKlHL69gO38yw==}
+    engines: {node: '>=0.10.0'}
+
+  typescript@5.8.3:
+    resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  use-sync-external-store@1.7.0:
+    resolution: {integrity: sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+snapshots:
+
+  '@reatom/async@3.16.10':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/effects': 3.11.3
+      '@reatom/hooks': 3.6.1
+      '@reatom/persist': 3.4.3
+      '@reatom/primitives': 3.11.0
+      '@reatom/utils': 3.11.3
+
+  '@reatom/core@3.10.3': {}
+
+  '@reatom/effects@3.11.3':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/utils': 3.11.3
+
+  '@reatom/framework@3.4.68':
+    dependencies:
+      '@reatom/async': 3.16.10
+      '@reatom/core': 3.10.3
+      '@reatom/effects': 3.11.3
+      '@reatom/hooks': 3.6.1
+      '@reatom/lens': 3.12.0
+      '@reatom/logger': 3.8.5
+      '@reatom/primitives': 3.11.0
+      '@reatom/utils': 3.11.3
+
+  '@reatom/hooks@3.6.1':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/effects': 3.11.3
+      '@reatom/utils': 3.11.3
+
+  '@reatom/lens@3.12.0':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/effects': 3.11.3
+      '@reatom/hooks': 3.6.1
+      '@reatom/primitives': 3.11.0
+      '@reatom/utils': 3.11.3
+
+  '@reatom/logger@3.8.5':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/utils': 3.11.3
+
+  '@reatom/npm-react@3.10.6(react@19.3.1)':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/effects': 3.11.3
+      '@reatom/lens': 3.12.0
+      '@reatom/utils': 3.11.3
+      react: 19.3.1
+      use-sync-external-store: 1.7.0(react@19.3.1)
+
+  '@reatom/persist@3.4.3':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/hooks': 3.6.1
+      '@reatom/lens': 3.12.0
+      '@reatom/utils': 3.11.3
+
+  '@reatom/primitives@3.11.0':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/utils': 3.11.3
+
+  '@reatom/utils@3.11.3': {}
+
+  '@types/react@19.3.0':
+    dependencies:
+      csstype: 3.2.3
+
+  csstype@3.2.3: {}
+
+  react@19.3.1: {}
+
+  typescript@5.8.3: {}
+
+  use-sync-external-store@1.7.0(react@19.3.1):
+    dependencies:
+      react: 19.3.1

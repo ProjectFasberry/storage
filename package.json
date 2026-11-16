@@ -1,0 +1,70 @@
+{
+	"name": "@projectfasberry/storage",
+	"version": "0.1.0",
+	"description": "Reatom model and React view for an S3-compatible storage browser",
+	"license": "MIT",
+	"type": "module",
+	"sideEffects": false,
+	"files": [
+		"dist",
+		"LICENSE",
+		"README.md"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/core/index.d.ts",
+			"import": "./dist/core/index.js"
+		},
+		"./react": {
+			"types": "./dist/react/index.d.ts",
+			"import": "./dist/react/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"prepare": "tsc -p tsconfig.build.json",
+		"type-check": "tsc -p tsconfig.build.json --noEmit"
+	},
+	"peerDependencies": {
+		"@reatom/framework": ">=3.4",
+		"@reatom/npm-react": ">=3.10",
+		"react": ">=18"
+	},
+	"peerDependenciesMeta": {
+		"@reatom/npm-react": {
+			"optional": true
+		},
+		"react": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@reatom/framework": "3.4.68",
+		"@reatom/npm-react": "3.10.6",
+		"@types/react": "19.3.0",
+		"react": "19.3.1",
+		"typescript": "~5.8.3"
+	},
+	"homepage": "https://github.com/ProjectFasberry/storage",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ProjectFasberry/storage.git"
+	},
+	"bugs": {
+		"url": "https://github.com/ProjectFasberry/storage/issues"
+	},
+	"keywords": [
+		"s3",
+		"minio",
+		"storage",
+		"reatom",
+		"react",
+		"file-browser"
+	],
+	"types": "./dist/core/index.d.ts",
+	"module": "./dist/core/index.js"
+}
