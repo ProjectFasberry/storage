@@ -1,4 +1,4 @@
-import { action, atom, onConnect } from "@reatom/framework";
+import { action, atom, onConnect, onUpdate } from "@reatom/framework";
 export const defaultStorageLabels = {
     bucketsTitle: "Buckets",
     objectsTitle: (bucket, folder) => `Objects in ${bucket}${folder ? `/${folder}` : ""}`,
@@ -22,7 +22,10 @@ export const defaultStorageLabels = {
     cancel: "Cancel",
     preview: "Open preview",
     closePreview: "Close preview",
+    selectedCount: (count, max) => (max ? `${count} / ${max} selected` : `${count} selected`),
     tree: "Folders",
+    expand: "Expand",
+    collapse: "Collapse",
     noResults: "Nothing found",
     listView: "List",
     gridView: "Grid",
@@ -51,20 +54,27 @@ const defaultFormatDate = (value, kind) => {
         });
 };
 const previewKey = (bucket, key) => `${bucket}/${key}`;
+const parentPrefix = (prefix) => {
+    const clean = prefix.replace(/\/$/, "");
+    const index = clean.lastIndexOf("/");
+    return index === -1 ? "" : `${clean.slice(0, index + 1)}`;
+};
 /**
  * Framework-agnostic view state shared by the React and Solid adapters.
  * Rendering lives in `@projectfasberry/storage/react` (or another binding);
  * filtering, sorting, selection and the preview lightbox live here.
  */
-export const createStorageBrowser = ({ name, storage, storageState, onSelectFile, labels: labelOverrides, formatDate = defaultFormatDate, previews = true, selectionMode = "immediate", defaultViewMode = "list", showTree = true, }) => {
+export const createStorageBrowser = ({ name, storage, storageState, onSelectFile, labels: labelOverrides, formatDate = defaultFormatDate, previews = true, selectionMode: selectionModeOption, multiple = false, maxSelected, onSelectFiles, defaultViewMode = "list", showTree = true, }) => {
     const labels = { ...defaultStorageLabels, ...labelOverrides };
+    const selectionMode = multiple ? "confirm" : (selectionModeOption ?? "immediate");
     const search = atom("", `${name}.search`);
     const sort = atom("name", `${name}.sort`);
     const sortDir = atom("asc", `${name}.sortDir`);
     const viewMode = atom(defaultViewMode, `${name}.viewMode`);
-    const selected = atom(null, `${name}.selected`);
+    const selected = atom([], `${name}.selected`);
     const lightbox = atom(null, `${name}.lightbox`);
     const treeVisible = atom(showTree, `${name}.treeVisible`);
+    const treeFocus = atom(null, `${name}.treeFocus`);
     const list = atom((ctx) => {
         const data = ctx.spy(storage.listObjects.dataAtom);
         const query = ctx.spy(search).trim().toLowerCase();
@@ -89,6 +99,37 @@ export const createStorageBrowser = ({ name, storage, storageState, onSelectFile
         });
         return { folders, objects };
     }, `${name}.list`);
+    const treeRows = atom((ctx) => {
+        const bucket = ctx.spy(storageState.bucket);
+        if (!bucket)
+            return [];
+        const tree = ctx.spy(storageState.tree);
+        const open = ctx.spy(storageState.treeOpen);
+        const rows = [{ prefix: "", depth: 0, expandable: true }];
+        const walk = (prefix, depth) => {
+            const entry = tree[prefix];
+            if (!entry?.folders.length)
+                return;
+            for (const child of entry.folders) {
+                const childEntry = tree[child];
+                rows.push({
+                    prefix: child,
+                    depth,
+                    expandable: !childEntry?.loaded || childEntry.folders.length > 0,
+                });
+                if (open[child])
+                    walk(child, depth + 1);
+            }
+        };
+        if (open[""] !== false)
+            walk("", 1);
+        return rows;
+    }, `${name}.treeRows`);
+    onUpdate(storageState.bucket, (ctx) => treeFocus(ctx, null));
+    onUpdate(storageState.isOpen, (ctx, isOpen) => {
+        if (!isOpen)
+            selected(ctx, []);
+    });
     onConnect(lightbox, (ctx) => {
         if (typeof window === "undefined")
             return;
@@ -107,19 +148,34 @@ export const createStorageBrowser = ({ name, storage, storageState, onSelectFile
         toggleViewMode: action((ctx) => viewMode(ctx, ctx.get(viewMode) === "list" ? "grid" : "list"), `${name}.toggleViewMode`),
         toggleTreeVisible: action((ctx) => treeVisible(ctx, !ctx.get(treeVisible)), `${name}.toggleTreeVisible`),
         selectObject: action((ctx, key) => {
+            if (multiple) {
+                const current = ctx.get(selected);
+                if (current.includes(key)) {
+                    selected(ctx, current.filter((item) => item !== key));
+                    return;
+                }
+                if (maxSelected && current.length >= maxSelected)
+                    return;
+                selected(ctx, [...current, key]);
+                return;
+            }
             if (selectionMode === "immediate") {
                 onSelectFile?.(ctx, key);
                 storageState.isOpen(ctx, false);
                 return;
             }
-            selected(ctx, ctx.get(selected) === key ? null : key);
+            const current = ctx.get(selected);
+            selected(ctx, current[0] === key ? [] : [key]);
         }, `${name}.selectObject`),
-        clearSelection: action((ctx) => selected(ctx, null), `${name}.clearSelection`),
+        clearSelection: action((ctx) => selected(ctx, []), `${name}.clearSelection`),
         confirmSelection: action((ctx) => {
-            const key = ctx.get(selected);
-            if (!key)
+            const keys = ctx.get(selected);
+            if (keys.length === 0)
                 return;
-            onSelectFile?.(ctx, key);
+            if (multiple)
+                onSelectFiles?.(ctx, keys);
+            else
+                onSelectFile?.(ctx, keys[0]);
             storageState.isOpen(ctx, false);
         }, `${name}.confirmSelection`),
         openPreview: action((ctx, params) => {
@@ -132,13 +188,68 @@ export const createStorageBrowser = ({ name, storage, storageState, onSelectFile
                 storage.loadPreview(ctx, params);
         }, `${name}.openPreview`),
         closePreview: action((ctx) => lightbox(ctx, null), `${name}.closePreview`),
+        setTreeFocus: action((ctx, prefix) => treeFocus(ctx, prefix), `${name}.setTreeFocus`),
+        /**
+         * Arrow-key navigation for the folder tree (WAI-ARIA tree pattern).
+         * Returns true when the key was handled.
+         */
+        onTreeKeyDown: action((ctx, key) => {
+            const rows = ctx.get(treeRows);
+            if (rows.length === 0)
+                return false;
+            const focused = ctx.get(treeFocus);
+            const index = Math.max(0, rows.findIndex((row) => row.prefix === focused));
+            const row = rows[index];
+            const prefix = row.prefix;
+            const open = ctx.get(storageState.treeOpen)[prefix] ?? false;
+            const focus = (next) => {
+                const target = rows[Math.min(Math.max(next, 0), rows.length - 1)];
+                treeFocus(ctx, target.prefix);
+                return true;
+            };
+            switch (key) {
+                case "ArrowDown":
+                    return focus(index + 1);
+                case "ArrowUp":
+                    return focus(index - 1);
+                case "Home":
+                    return focus(0);
+                case "End":
+                    return focus(rows.length - 1);
+                case "ArrowRight":
+                    if (!row.expandable)
+                        return true;
+                    if (!open) {
+                        storage.toggleTree(ctx, prefix);
+                        return true;
+                    }
+                    return focus(index + 1);
+                case "ArrowLeft":
+                    if (open) {
+                        storage.toggleTree(ctx, prefix);
+                        return true;
+                    }
+                    if (prefix === "")
+                        return true;
+                    return focus(rows.findIndex((candidate) => candidate.prefix === parentPrefix(prefix)));
+                case "Enter":
+                case " ":
+                    storage.openFolder(ctx, prefix);
+                    return true;
+                default:
+                    return false;
+            }
+        }, `${name}.onTreeKeyDown`),
     };
     return {
         labels,
         formatDate,
         previews,
         selectionMode,
+        multiple,
+        maxSelected,
         onSelectFile,
+        onSelectFiles,
         search,
         sort,
         sortDir,
@@ -146,6 +257,8 @@ export const createStorageBrowser = ({ name, storage, storageState, onSelectFile
         selected,
         lightbox,
         treeVisible,
+        treeFocus,
+        treeRows,
         list,
         actions,
     };

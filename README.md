@@ -58,6 +58,9 @@ const { StorageContent } = createStorageView({
   onSelectFile: (ctx, key) => console.log(key),
   previews: true,            // false = file icons, no presigned thumbnails
   selectionMode: "confirm",  // footer with Select / Cancel
+  multiple: true,            // pick several files, forces the confirm footer
+  maxSelected: 8,            // optional upper bound
+  onSelectFiles: (ctx, keys) => console.log(keys),
   showTree: true,            // recursive folder tree
 })
 ```
@@ -72,8 +75,21 @@ drawer or page. Labels and date formatting are props.
 - list and grid views, image previews and a lightbox;
 - file-type icons (image, text, code, archive, audio, video, generic file);
 - pagination with `nextContinuationToken`;
+- keyboard-only folder tree (arrow keys, Home/End, Enter) with ARIA `tree`/`treeitem`;
 - keyboard and screen-reader friendly controls;
+- multiple selection with `multiple` and `maxSelected`;
 - labels, date formatting and previews are configurable.
+
+## Tests
+
+```bash
+pnpm test          # vitest + jsdom + jest-axe
+pnpm type-check    # sources and tests
+```
+
+The suite covers the tree keyboard pattern, the ARIA tree roles and axe checks
+for the bucket list and the object view, plus selection limits in the headless
+layer.
 
 ## Tailwind
 

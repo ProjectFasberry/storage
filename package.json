@@ -1,6 +1,6 @@
 {
 	"name": "@projectfasberry/storage",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Reatom model and React view for an S3-compatible storage browser",
 	"license": "MIT",
 	"type": "module",
@@ -30,13 +30,13 @@
 	},
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json",
-		"type-check": "tsc -p tsconfig.build.json --noEmit"
+		"type-check": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+		"test": "vitest run"
 	},
 	"peerDependencies": {
 		"@reatom/framework": ">=3.4",
 		"@reatom/npm-react": ">=3.10",
-		"react": ">=18",
-		"react-dom": ">=18"
+		"react": ">=18"
 	},
 	"peerDependenciesMeta": {
 		"@reatom/npm-react": {
@@ -44,19 +44,22 @@
 		},
 		"react": {
 			"optional": true
-		},
-		"react-dom": {
-			"optional": true
 		}
 	},
 	"devDependencies": {
 		"@reatom/framework": "3.4.68",
 		"@reatom/npm-react": "3.10.6",
+		"@testing-library/dom": "^10.4.2",
+		"@testing-library/jest-dom": "^7.0.1",
+		"@testing-library/react": "^16.3.3",
+		"@testing-library/user-event": "^14.6.10",
+		"@types/jest-axe": "^3.5.9",
 		"@types/react": "19.3.0",
+		"jest-axe": "^11.0.0",
+		"jsdom": "^31.0.1",
 		"react": "19.3.1",
 		"typescript": "~5.8.3",
-		"react-dom": "19.3.1",
-		"@types/react-dom": "19.3.0"
+		"vitest": "^5.1.0"
 	},
 	"homepage": "https://github.com/ProjectFasberry/storage",
 	"repository": {

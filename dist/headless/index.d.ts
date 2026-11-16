@@ -2,6 +2,12 @@ import { type Ctx } from "@reatom/framework";
 import type { StorageModel, StorageState } from "../core";
 export type StorageViewMode = "list" | "grid";
 export type StorageSortKey = "name" | "size" | "date";
+/** A visible row of the folder tree, flattened for keyboard navigation. */
+export type StorageTreeRow = {
+    prefix: string;
+    depth: number;
+    expandable: boolean;
+};
 export type StorageSortDir = "asc" | "desc";
 export type StorageSelectionMode = "immediate" | "confirm";
 export type StorageLabels = {
@@ -27,7 +33,10 @@ export type StorageLabels = {
     cancel: string;
     preview: string;
     closePreview: string;
+    selectedCount: (count: number, max?: number) => string;
     tree: string;
+    expand: string;
+    collapse: string;
     noResults: string;
     listView: string;
     gridView: string;
@@ -44,6 +53,11 @@ export type StorageBrowserOptions = {
     previews?: boolean;
     /** `confirm` shows a selection footer instead of picking on click. */
     selectionMode?: StorageSelectionMode;
+    /** Select several files; forces the confirm footer. */
+    multiple?: boolean;
+    /** Upper bound for a multiple selection. */
+    maxSelected?: number;
+    onSelectFiles?: (ctx: Ctx, fileNames: string[]) => void;
     defaultViewMode?: StorageViewMode;
     showTree?: boolean;
 };
@@ -53,7 +67,7 @@ export declare const folderName: (prefix: string) => string;
  * Rendering lives in `@projectfasberry/storage/react` (or another binding);
  * filtering, sorting, selection and the preview lightbox live here.
  */
-export declare const createStorageBrowser: ({ name, storage, storageState, onSelectFile, labels: labelOverrides, formatDate, previews, selectionMode, defaultViewMode, showTree, }: StorageBrowserOptions) => {
+export declare const createStorageBrowser: ({ name, storage, storageState, onSelectFile, labels: labelOverrides, formatDate, previews, selectionMode: selectionModeOption, multiple, maxSelected, onSelectFiles, defaultViewMode, showTree, }: StorageBrowserOptions) => {
     labels: {
         bucketsTitle: string;
         objectsTitle: (bucket: string, folder: string) => string;
@@ -77,7 +91,10 @@ export declare const createStorageBrowser: ({ name, storage, storageState, onSel
         cancel: string;
         preview: string;
         closePreview: string;
+        selectedCount: (count: number, max?: number) => string;
         tree: string;
+        expand: string;
+        collapse: string;
         noResults: string;
         listView: string;
         gridView: string;
@@ -85,14 +102,19 @@ export declare const createStorageBrowser: ({ name, storage, storageState, onSel
     formatDate: (value: string, kind: "object" | "bucket") => string;
     previews: boolean;
     selectionMode: StorageSelectionMode;
+    multiple: boolean;
+    maxSelected: number | undefined;
     onSelectFile: ((ctx: Ctx, fileName: string) => void) | undefined;
+    onSelectFiles: ((ctx: Ctx, fileNames: string[]) => void) | undefined;
     search: import("@reatom/framework").AtomMut<string>;
     sort: import("@reatom/framework").AtomMut<StorageSortKey>;
     sortDir: import("@reatom/framework").AtomMut<StorageSortDir>;
     viewMode: import("@reatom/framework").AtomMut<StorageViewMode>;
-    selected: import("@reatom/framework").AtomMut<string | null>;
+    selected: import("@reatom/framework").AtomMut<string[]>;
     lightbox: import("@reatom/framework").AtomMut<string | null>;
     treeVisible: import("@reatom/framework").AtomMut<boolean>;
+    treeFocus: import("@reatom/framework").AtomMut<string | null>;
+    treeRows: import("@reatom/framework").Atom<StorageTreeRow[]>;
     list: import("@reatom/framework").Atom<{
         folders: string[];
         objects: import("../core").StorageObject[];
@@ -104,13 +126,19 @@ export declare const createStorageBrowser: ({ name, storage, storageState, onSel
         toggleViewMode: import("@reatom/framework").Action<[], StorageViewMode>;
         toggleTreeVisible: import("@reatom/framework").Action<[], boolean>;
         selectObject: import("@reatom/framework").Action<[key: string], void>;
-        clearSelection: import("@reatom/framework").Action<[], string | null>;
+        clearSelection: import("@reatom/framework").Action<[], string[]>;
         confirmSelection: import("@reatom/framework").Action<[], void>;
         openPreview: import("@reatom/framework").Action<[params: {
             bucket: string;
             key: string;
         }], void>;
         closePreview: import("@reatom/framework").Action<[], string | null>;
+        setTreeFocus: import("@reatom/framework").Action<[prefix: string], string | null>;
+        /**
+         * Arrow-key navigation for the folder tree (WAI-ARIA tree pattern).
+         * Returns true when the key was handled.
+         */
+        onTreeKeyDown: import("@reatom/framework").Action<[key: string], boolean>;
     };
 };
 export type StorageBrowser = ReturnType<typeof createStorageBrowser>;
