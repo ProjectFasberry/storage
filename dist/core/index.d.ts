@@ -20,6 +20,11 @@ export type StorageObjectPage = {
     isTruncated?: boolean;
     nextContinuationToken?: string;
 };
+export type StorageListOptions = {
+    folder?: string;
+    delimiter?: string;
+    continuationToken?: string;
+};
 /**
  * The only thing an app has to provide: a few calls that match the
  * `/privated/volume/*` API design. The model stays independent from any HTTP
@@ -28,14 +33,23 @@ export type StorageObjectPage = {
 export type StorageApi = {
     listBuckets(): Promise<StorageBucket[]>;
     getBucket(bucket: string): Promise<unknown>;
-    listObjects(bucket: string, options?: {
-        folder?: string;
-        delimiter?: string;
-    }): Promise<StorageObjectPage>;
+    listObjects(bucket: string, options?: StorageListOptions): Promise<StorageObjectPage>;
     /** Short-lived URL for private buckets; public buckets can omit it. */
     presign?(bucket: string, key: string): Promise<string>;
 };
 export type StorageSection = "buckets-list" | "bucket-list";
+export type StorageTreeEntry = {
+    folders: string[];
+    loaded: boolean;
+    loading: boolean;
+    error: string | null;
+};
+type ListObjectsParams = {
+    bucket: string;
+    folder?: string;
+    continuationToken?: string;
+    append?: boolean;
+};
 export declare const createStorageModel: ({ name, api }: {
     name: string;
     api: StorageApi;
@@ -52,6 +66,10 @@ export declare const createStorageModel: ({ name, api }: {
         folder: import("@reatom/framework").AtomMut<string> & {
             reset: import("@reatom/framework").Action<[], string>;
         };
+        nextToken: import("@reatom/framework").AtomMut<string | null>;
+        append: import("@reatom/framework").AtomMut<boolean>;
+        tree: import("@reatom/framework").AtomMut<Record<string, StorageTreeEntry>>;
+        treeOpen: import("@reatom/framework").AtomMut<Record<string, boolean>>;
     };
     storage: import("@reatom/framework").AtomMut<null> & {
         listBuckets: import("@reatom/framework").AsyncAction<any[], StorageBucket[]> & {
@@ -75,10 +93,7 @@ export declare const createStorageModel: ({ name, api }: {
                 reset: import("@reatom/framework").Action;
             };
         };
-        listObjects: import("@reatom/framework").AsyncAction<[params: {
-            bucket: string;
-            folder?: string;
-        }], StorageObjectPage> & {
+        listObjects: import("@reatom/framework").AsyncAction<[params: ListObjectsParams], StorageObjectPage> & {
             dataAtom: import("@reatom/framework").AsyncDataAtom<StorageObjectPage | null>;
         } & {
             statusesAtom: import("@reatom/framework").AsyncStatusesAtom;
@@ -97,6 +112,17 @@ export declare const createStorageModel: ({ name, api }: {
         } | null> & {
             statusesAtom: import("@reatom/framework").AsyncStatusesAtom;
         };
+        fetchTree: import("@reatom/framework").AsyncAction<[prefix: string], {
+            prefix: string;
+            folders: string[];
+            error: null;
+        } | {
+            prefix: string;
+            folders: never[];
+            error: string;
+        }> & {
+            statusesAtom: import("@reatom/framework").AsyncStatusesAtom;
+        };
         selectBucket: import("@reatom/framework").Action<[bucket: string], void>;
         openFolder: import("@reatom/framework").Action<[prefix: string], void>;
         /** Folder up, then buckets, then close the panel. */
@@ -108,8 +134,12 @@ export declare const createStorageModel: ({ name, api }: {
          * happens exactly when a bucket replaces the bucket list.
          */
         load: import("@reatom/framework").Action<[], void>;
+        loadMore: import("@reatom/framework").Action<[], void>;
+        loadTree: import("@reatom/framework").Action<[prefix: string], void>;
+        toggleTree: import("@reatom/framework").Action<[prefix: string], void>;
     };
 };
 export type StorageModel = ReturnType<typeof createStorageModel>["storage"];
 export type StorageState = ReturnType<typeof createStorageModel>["storageState"];
+export {};
 //# sourceMappingURL=index.d.ts.map

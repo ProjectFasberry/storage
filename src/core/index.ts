@@ -33,6 +33,12 @@ export type StorageObjectPage = {
 	nextContinuationToken?: string;
 };
 
+export type StorageListOptions = {
+	folder?: string;
+	delimiter?: string;
+	continuationToken?: string;
+};
+
 /**
  * The only thing an app has to provide: a few calls that match the
  * `/privated/volume/*` API design. The model stays independent from any HTTP
@@ -41,14 +47,35 @@ export type StorageObjectPage = {
 export type StorageApi = {
 	listBuckets(): Promise<StorageBucket[]>;
 	getBucket(bucket: string): Promise<unknown>;
-	listObjects(bucket: string, options?: { folder?: string; delimiter?: string }): Promise<StorageObjectPage>;
+	listObjects(bucket: string, options?: StorageListOptions): Promise<StorageObjectPage>;
 	/** Short-lived URL for private buckets; public buckets can omit it. */
 	presign?(bucket: string, key: string): Promise<string>;
 };
 
 export type StorageSection = "buckets-list" | "bucket-list";
 
+export type StorageTreeEntry = {
+	folders: string[];
+	loaded: boolean;
+	loading: boolean;
+	error: string | null;
+};
+
+type ListObjectsParams = {
+	bucket: string;
+	folder?: string;
+	continuationToken?: string;
+	append?: boolean;
+};
+
 const previewKey = (bucket: string, key: string) => `${bucket}/${key}`;
+
+const emptyTreeEntry = (): StorageTreeEntry => ({
+	folders: [],
+	loaded: false,
+	loading: false,
+	error: null,
+});
 
 export const createStorageModel = ({ name, api }: { name: string; api: StorageApi }) => {
 	const storageState = atom(null, `${name}.storageState`).pipe(
@@ -58,6 +85,10 @@ export const createStorageModel = ({ name, api }: { name: string; api: StorageAp
 			bucket: atom<string | null>(null, `${name}.bucket`).pipe(withReset()),
 			/** S3 prefix of the open folder; empty at the bucket root. */
 			folder: atom("", `${name}.folder`).pipe(withReset()),
+			nextToken: atom<string | null>(null, `${name}.nextToken`),
+			append: atom(false, `${name}.append`),
+			tree: atom<Record<string, StorageTreeEntry>>({}, `${name}.tree`),
+			treeOpen: atom<Record<string, boolean>>({ "": true }, `${name}.treeOpen`),
 		})),
 	);
 
@@ -77,10 +108,27 @@ export const createStorageModel = ({ name, api }: { name: string; api: StorageAp
 				withErrorAtom(),
 			),
 			listObjects: reatomAsync(
-				async (_, params: { bucket: string; folder?: string }) =>
-					api.listObjects(params.bucket, { folder: params.folder, delimiter: "/" }),
+				async (_, params: ListObjectsParams) =>
+					api.listObjects(params.bucket, {
+						folder: params.folder,
+						delimiter: "/",
+						continuationToken: params.continuationToken,
+					}),
 				`${name}.listObjects`,
-			).pipe(withDataAtom(null), withStatusesAtom(), withErrorAtom()),
+			).pipe(
+				withDataAtom(null as StorageObjectPage | null, (ctx, page, state) => {
+					if (!page) return null;
+					if (!ctx.get(storageState.append)) return page;
+
+					return {
+						...page,
+						contents: [...(state?.contents ?? []), ...(page.contents ?? [])],
+						commonPrefixes: [...(state?.commonPrefixes ?? []), ...(page.commonPrefixes ?? [])],
+					};
+				}),
+				withStatusesAtom(),
+				withErrorAtom(),
+			),
 			previews,
 			loadPreview: reatomAsync(
 				async (_, params: { bucket: string; key: string }) => {
@@ -99,13 +147,39 @@ export const createStorageModel = ({ name, api }: { name: string; api: StorageAp
 					},
 				},
 			).pipe(withStatusesAtom()),
+			fetchTree: reatomAsync(async (ctx, prefix: string) => {
+				const bucket = ctx.get(storageState.bucket);
+				if (!bucket) return { prefix, folders: [], error: null };
+
+				try {
+					const page = await api.listObjects(bucket, { folder: prefix, delimiter: "/" });
+
+					return {
+						prefix,
+						folders: page.commonPrefixes?.map(({ prefix: child }) => child) ?? [],
+						error: null,
+					};
+				} catch (error) {
+					return {
+						prefix,
+						folders: [],
+						error: error instanceof Error ? error.message : String(error),
+					};
+				}
+			}, `${name}.fetchTree`).pipe(withStatusesAtom()),
 			selectBucket: action((ctx, bucket: string) => {
 				storageState.bucket(ctx, bucket);
 				storageState.folder(ctx, "");
 				storageState.section(ctx, "bucket-list");
+				storageState.nextToken(ctx, null);
+				storageState.append(ctx, false);
+				storageState.tree(ctx, {});
+				storageState.treeOpen(ctx, { "": true });
 			}, `${name}.selectBucket`),
 			openFolder: action((ctx, prefix: string) => {
 				storageState.folder(ctx, prefix);
+				storageState.nextToken(ctx, null);
+				storageState.append(ctx, false);
 			}, `${name}.openFolder`),
 			/** Folder up, then buckets, then close the panel. */
 			goBack: action((ctx) => {
@@ -114,6 +188,8 @@ export const createStorageModel = ({ name, api }: { name: string; api: StorageAp
 				if (folder) {
 					const parent = folder.replace(/\/$/, "").split("/").slice(0, -1).join("/");
 					storageState.folder(ctx, parent ? `${parent}/` : "");
+					storageState.nextToken(ctx, null);
+					storageState.append(ctx, false);
 					return;
 				}
 
@@ -139,10 +215,64 @@ export const createStorageModel = ({ name, api }: { name: string; api: StorageAp
 				const bucket = ctx.get(storageState.bucket);
 				if (!bucket) return;
 
+				storageState.nextToken(ctx, null);
+				storageState.append(ctx, false);
 				storage.listObjects(ctx, { bucket, folder: ctx.get(storageState.folder) });
 			}, `${name}.load`),
+			loadMore: action((ctx) => {
+				const token = ctx.get(storageState.nextToken);
+				const bucket = ctx.get(storageState.bucket);
+				if (!token || !bucket) return;
+
+				storage.listObjects(ctx, {
+					bucket,
+					folder: ctx.get(storageState.folder),
+					continuationToken: token,
+					append: true,
+				});
+			}, `${name}.loadMore`),
+			loadTree: action((ctx, prefix: string) => {
+				const entry = ctx.get(storageState.tree)[prefix];
+				if (entry?.loaded || entry?.loading) return;
+
+				storage.fetchTree(ctx, prefix);
+			}, `${name}.loadTree`),
+			toggleTree: action((ctx, prefix: string) => {
+				const open = ctx.get(storageState.treeOpen);
+				const next = !open[prefix];
+
+				storageState.treeOpen(ctx, { ...open, [prefix]: next });
+				if (next) storage.loadTree(ctx, prefix);
+			}, `${name}.toggleTree`),
 		})),
 	);
+
+	storage.listObjects.onCall((ctx, _promise, params) => {
+		storageState.append(ctx, !!params[0]?.append);
+	});
+	storage.listObjects.onFulfill.onCall((ctx, page) => {
+		storageState.nextToken(ctx, page?.nextContinuationToken ?? null);
+	});
+	storage.fetchTree.onCall((ctx, _promise, params) => {
+		const [prefix] = params;
+		const tree = ctx.get(storageState.tree);
+		storageState.tree(ctx, {
+			...tree,
+			[prefix]: { ...(tree[prefix] ?? emptyTreeEntry()), loading: true, error: null },
+		});
+	});
+	storage.fetchTree.onFulfill.onCall((ctx, result) => {
+		const tree = ctx.get(storageState.tree);
+		storageState.tree(ctx, {
+			...tree,
+			[result.prefix]: {
+				folders: result.folders,
+				loaded: !result.error,
+				loading: false,
+				error: result.error,
+			},
+		});
+	});
 
 	return { storageState, storage };
 };

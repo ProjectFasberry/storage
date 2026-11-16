@@ -1,13 +1,13 @@
 # @projectfasberry/storage
 
-Reatom model and React view for an S3-compatible storage browser. The model
-knows only about a small `StorageApi`; the view is a separate entry so the core
-can be used with any Reatom binding.
+Reatom model, headless browser state and a React view for an S3-compatible
+storage browser. The core and headless entries are framework-agnostic; React is
+one binding, a Solid adapter can use the same state.
 
 ## Install
 
 ```bash
-npm install @projectfasberry/storage @reatom/framework @reatom/npm-react react
+npm install @projectfasberry/storage @reatom/framework @reatom/npm-react react react-dom
 ```
 
 ## Core
@@ -28,9 +28,23 @@ const { storage, storageState } = createStorageModel({
 })
 ```
 
-`StorageApi` is the only coupling: `listBuckets`, `getBucket`, `listObjects`
-and an optional `presign`. `listObjects` returns `contents` and
-`commonPrefixes` (the S3 list shape).
+`StorageApi` is the only coupling. `listObjects` supports `folder`,
+`delimiter` and `continuationToken`; the response follows the S3 list shape
+(`contents`, `commonPrefixes`, `nextContinuationToken`).
+
+## Headless state
+
+`@projectfasberry/storage/headless` holds the view state shared by UI adapters:
+search, sorting, list/grid mode, recursive folder tree, selection, pagination
+and the preview lightbox. It has no React dependency.
+
+```ts
+import { createStorageBrowser } from "@projectfasberry/storage/headless"
+
+const browser = createStorageBrowser({ name: "media", storage, storageState })
+browser.actions.setSearch(ctx, "logo")
+ctx.spy(browser.list) // { folders, objects }
+```
 
 ## React
 
@@ -42,19 +56,29 @@ const { StorageContent } = createStorageView({
   storage,
   storageState,
   onSelectFile: (ctx, key) => console.log(key),
+  previews: true,            // false = file icons, no presigned thumbnails
+  selectionMode: "confirm",  // footer with Select / Cancel
+  showTree: true,            // recursive folder tree
 })
-
-return <StorageContent />
 ```
 
-`createStorageView` is headless about the shell: render `StorageContent` inside
-your own dialog, drawer or page. Labels and date formatting are props, so the
-package does not hardcode a locale.
+`StorageContent` is the browser itself; render it inside your own dialog,
+drawer or page. Labels and date formatting are props.
+
+## Features
+
+- bucket list, breadcrumbs, search and sorting;
+- recursive lazy folder tree;
+- list and grid views, image previews and a lightbox;
+- file-type icons (image, text, code, archive, audio, video, generic file);
+- pagination with `nextContinuationToken`;
+- keyboard and screen-reader friendly controls;
+- labels, date formatting and previews are configurable.
 
 ## Tailwind
 
-The view uses Tailwind utility classes. With Tailwind v4 add the package source
-to your CSS so the classes are generated:
+The React view uses Tailwind utility classes. With Tailwind v4 add the package
+source to your CSS:
 
 ```css
 @source "../node_modules/@projectfasberry/storage/dist/**/*.js";
